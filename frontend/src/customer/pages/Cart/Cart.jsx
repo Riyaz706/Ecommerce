@@ -45,7 +45,7 @@ const Cart = () => {
                         <div className="bg-white rounded-xl shadow-lg overflow-hidden">
                             {cartItems.map((item, index) => (
                                 <div key={`${item.productId}-${item.size}-${item.color}-${index}`} className="p-6 border-b last:border-b-0">
-                                    <div className="flex gap-4">
+                                    <div className="flex flex-col sm:flex-row gap-4 sm:items-center">
                                         {/* Product Image */}
                                         <img
                                             src={item.image || 'https://via.placeholder.com/100'}
@@ -82,7 +82,7 @@ const Cart = () => {
                                         </div>
 
                                         {/* Quantity & Remove */}
-                                        <div className="flex flex-col items-end justify-between">
+                                        <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center w-full sm:w-auto mt-4 sm:mt-0 gap-4">
                                             <button
                                                 onClick={() => removeFromCart(item.productId, item.size, item.color)}
                                                 className="text-red-600 hover:text-red-800"

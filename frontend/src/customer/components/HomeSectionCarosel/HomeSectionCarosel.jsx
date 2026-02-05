@@ -28,7 +28,16 @@ const HomeSectionCarosel = ({ category, sectionTitle }) => {
     const loadProducts = async () => {
         try {
             // Increase limit significantly to show "upto 300 products" style, or just a decent amount
-            const params = category ? { category, limit: 20 } : { limit: 20 };
+            const params = { limit: 20 };
+
+            if (category) {
+                params.category = category;
+            }
+
+            if (sectionTitle === "Featured Products") {
+                params.sort = 'random';
+            }
+
             const response = await products.getAll(params);
             setProductList(response.data.products);
         } catch (error) {
@@ -52,6 +61,8 @@ const HomeSectionCarosel = ({ category, sectionTitle }) => {
     };
 
     const syncActiveIndex = ({ item }) => setActiveIndex(item);
+
+    const isFeatured = sectionTitle === "Featured Products";
 
     if (loading) {
         return (
@@ -81,7 +92,12 @@ const HomeSectionCarosel = ({ category, sectionTitle }) => {
     return (
         <div className='relative px-4 lg:px-8 py-8'>
             {sectionTitle && (
-                <h2 className='text-2xl font-bold text-gray-900 mb-5'>{sectionTitle}</h2>
+                <div className="flex items-center justify-between mb-6">
+                    <h2 className='text-3xl font-extrabold text-gray-900 tracking-tight'>{sectionTitle}</h2>
+                    <button className="text-purple-600 hover:text-purple-700 font-semibold text-sm hidden sm:block">
+                        View All →
+                    </button>
+                </div>
             )}
             <div className='relative px-5'>
                 <AliceCarousel
@@ -91,6 +107,9 @@ const HomeSectionCarosel = ({ category, sectionTitle }) => {
                     disableDotsControls
                     responsive={responsive}
                     onSlideChanged={syncActiveIndex}
+                    autoPlay={isFeatured}
+                    autoPlayInterval={2000}
+                    infinite={isFeatured}
                 />
 
                 {productList.length > 0 && (
@@ -98,7 +117,7 @@ const HomeSectionCarosel = ({ category, sectionTitle }) => {
                         {activeIndex !== 0 && <Button
                             onClick={slidePrev}
                             variant='contained'
-                            className="z-50 bg-white"
+                            className="z-50 bg-white hidden sm:block"
                             sx={{
                                 position: 'absolute',
                                 top: '50%',
@@ -121,7 +140,7 @@ const HomeSectionCarosel = ({ category, sectionTitle }) => {
                         {activeIndex !== items.length - Math.floor(responsive[1024].items) && <Button
                             onClick={slideNext}
                             variant='contained'
-                            className="z-50 bg-white"
+                            className="z-50 bg-white hidden sm:block"
                             sx={{
                                 position: 'absolute',
                                 top: '50%',

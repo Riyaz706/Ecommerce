@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { customerOrders } from '../../../utils/api';
 import { useCustomerAuth } from '../../context/CustomerAuthContext';
+import { useCart } from '../../context/CartContext';
 
 const MyOrders = () => {
     const { isAuthenticated } = useCustomerAuth();
+    const { addToCart } = useCart();
+    const navigate = useNavigate();
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -23,6 +26,23 @@ const MyOrders = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleReorder = (order) => {
+        order.items.forEach(item => {
+            if (!item.product) return; // Skip if product no longer exists
+
+            const productData = {
+                _id: item.product._id,
+                name: item.name,
+                price: item.price,
+                discountedPrice: item.discountedPrice,
+                images: [{ url: item.image }]
+            };
+
+            addToCart(productData, item.quantity, item.size, item.color);
+        });
+        navigate('/cart');
     };
 
     const getStatusColor = (status) => {
@@ -150,7 +170,10 @@ const MyOrders = () => {
                                                 View Details
                                             </Link>
                                             {order.orderStatus === 'Delivered' && (
-                                                <button className="px-6 py-2 border-2 border-purple-600 text-purple-600 rounded-lg font-semibold hover:bg-purple-50 transition">
+                                                <button
+                                                    onClick={() => handleReorder(order)}
+                                                    className="px-6 py-2 border-2 border-purple-600 text-purple-600 rounded-lg font-semibold hover:bg-purple-50 transition"
+                                                >
                                                     Reorder
                                                 </button>
                                             )}

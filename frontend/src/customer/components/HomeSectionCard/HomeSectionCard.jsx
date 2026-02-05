@@ -10,54 +10,54 @@ const HomeSectionCard = ({ product }) => {
 
   const imageUrl = product.images?.[0]?.url || 'https://via.placeholder.com/300x400?text=No+Image';
   const discountedPrice = product.discountedPrice || product.price;
-  const hasDiscount = product.discountedPrice && product.discountedPrice < product.price; // Better check
+  const hasDiscount = product.discountedPrice && product.discountedPrice < product.price;
 
   return (
     <div
-      className='cursor-pointer flex flex-col items-center bg-white rounded-lg shadow-lg overflow-hidden w-[15rem] mx-3 hover:shadow-xl transition-shadow duration-300'
+      className='group relative cursor-pointer flex flex-col items-center bg-white rounded-xl shadow-sm hover:shadow-2xl overflow-hidden w-full transition-all duration-300'
       onClick={() => navigate(`/product/${product._id}`)}
     >
-      <div className='h-[20rem] w-full relative'> {/* Increased height for better visibility */}
+      <div className='aspect-[3/4] w-full relative overflow-hidden'>
         <img
-          className='object-cover object-top w-full h-full'
+          className='object-cover object-top w-full h-full transition-transform duration-500 group-hover:scale-110'
           src={imageUrl}
           alt={product.name}
           onError={(e) => {
             e.target.src = 'https://via.placeholder.com/300x400?text=No+Image';
           }}
         />
+
+        {/* Discount Badge */}
         {hasDiscount && (
-          <div className='absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded-md text-xs font-bold'>
-            {product.discountPercent}% OFF
+          <div className='absolute top-3 left-3 bg-red-600 text-white px-2 py-1 rounded-full text-xs font-bold shadow-md'>
+            -{product.discountPercent}%
           </div>
         )}
+
+        {/* Overlay Actions */}
+        <div className='absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2'>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              addToCart(product);
+            }}
+            className='bg-white text-gray-900 px-4 py-2 rounded-full font-bold text-sm hover:bg-purple-600 hover:text-white transition-colors shadow-lg transform translate-y-4 group-hover:translate-y-0 duration-300'
+          >
+            Quick Add
+          </button>
+        </div>
       </div>
 
       <div className='p-4 w-full'>
-        <h3 className='text-lg font-medium text-gray-900 truncate'>{product.name}</h3>
-        <p className='mt-1 text-sm text-gray-500 truncate'>{product.brand || product.category}</p>
+        <h3 className='text-md font-semibold text-gray-900 truncate'>{product.name}</h3>
+        <p className='text-xs text-gray-500 uppercase tracking-wide mb-2'>{product.brand || product.category}</p>
 
-        <div className='mt-2 flex items-center justify-between'>
-          <div className='flex items-center gap-2'>
-            <span className='text-lg font-bold text-gray-900'>₹{discountedPrice?.toLocaleString()}</span>
-            {hasDiscount && (
-              <>
-                <span className='text-sm text-gray-500 line-through'>₹{product.price?.toLocaleString()}</span>
-                <span className='text-sm text-green-600 font-semibold'>{product.discountPercent}% off</span>
-              </>
-            )}
-          </div>
+        <div className='flex items-center gap-2'>
+          <span className='text-lg font-bold text-gray-900'>₹{discountedPrice?.toLocaleString()}</span>
+          {hasDiscount && (
+            <span className='text-sm text-gray-400 line-through'>₹{product.price?.toLocaleString()}</span>
+          )}
         </div>
-
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            addToCart(product);
-          }}
-          className='mt-3 w-full bg-purple-600 text-white py-2 rounded-md hover:bg-purple-700 transition-colors duration-300 font-medium'
-        >
-          Add to Cart
-        </button>
       </div>
     </div>
   );

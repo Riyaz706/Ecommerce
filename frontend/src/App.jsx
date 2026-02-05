@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import ScrollToTop from './utils/ScrollToTop';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { AdminAuthProvider } from './admin/context/AdminAuthContext';
@@ -7,6 +8,7 @@ import { CartProvider } from './customer/context/CartContext';
 
 // Customer components
 import NavigationBar from './customer/components/NavigationBar/NavigationBar';
+import Footer from './customer/components/Footer/Footer';
 import HomePage from './customer/pages/HomePage/HomePage';
 import ProductListing from './customer/pages/ProductListing/ProductListing';
 import ProductDetail from './customer/pages/ProductDetail/ProductDetail';
@@ -16,6 +18,7 @@ import CustomerRegister from './customer/pages/Auth/CustomerRegister';
 import Checkout from './customer/pages/Checkout/Checkout';
 import OrderConfirmation from './customer/pages/OrderConfirmation/OrderConfirmation';
 import MyOrders from './customer/pages/MyOrders/MyOrders';
+import PaymentPage from './customer/pages/PaymentPage/PaymentPage';
 
 // Admin components
 import AdminLogin from './admin/pages/AdminLogin';
@@ -24,6 +27,7 @@ import Dashboard from './admin/pages/Dashboard';
 import ProductManagement from './admin/pages/ProductManagement';
 import CarouselManagement from './admin/pages/CarouselManagement';
 import OrderManagement from './admin/pages/OrderManagement';
+import LandingPage from './pages/LandingPage';
 
 function App() {
   return (
@@ -42,15 +46,17 @@ function App() {
             pauseOnHover
             theme="light"
           />
+          <ScrollToTop />
 
           <Routes>
-            {/* Customer Routes */}
-            <Route path="/" element={<Navigate to="/login" replace />} />
-            
+            {/* Landing Page */}
+            <Route path="/" element={<LandingPage />} />
+
             <Route path="/home" element={
               <>
                 <NavigationBar />
                 <HomePage />
+                <Footer />
               </>
             } />
 
@@ -72,6 +78,7 @@ function App() {
               <>
                 <NavigationBar />
                 <ProductDetail />
+                <Footer />
               </>
             } />
 
@@ -79,6 +86,7 @@ function App() {
               <>
                 <NavigationBar />
                 <Cart />
+                <Footer />
               </>
             } />
 
@@ -91,6 +99,15 @@ function App() {
               <>
                 <NavigationBar />
                 <Checkout />
+                <Footer />
+              </>
+            } />
+
+            <Route path="/checkout/payment" element={
+              <>
+                <NavigationBar />
+                <PaymentPage />
+                <Footer />
               </>
             } />
 
@@ -100,6 +117,7 @@ function App() {
               <>
                 <NavigationBar />
                 <MyOrders />
+                <Footer />
               </>
             } />
 

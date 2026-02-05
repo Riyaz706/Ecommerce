@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const { onRequest } = require('firebase-functions/v2/https');
 
 const path = require('path');
 
@@ -9,7 +10,14 @@ const app = express();
 
 // Middleware
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: [
+        process.env.FRONTEND_URL || 'http://localhost:5173',
+        'http://localhost:5173',
+        'http://localhost:5174',
+        'http://localhost:5175',
+        'https://ecommerce-riyaz-app.web.app',
+        'https://ecommerce-riyaz-app.firebaseapp.com'
+    ],
     credentials: true
 }));
 app.use(express.json());
@@ -27,6 +35,7 @@ app.use('/api/carousels', require('./routes/carousels'));
 app.use('/api/orders', require('./routes/orders'));
 app.use('/api/categories', require('./routes/categories'));
 app.use('/api/customer', require('./routes/customerAuth'));
+app.use('/api/payments', require('./routes/paymentRoutes'));
 
 // Health check route
 app.get('/api/health', (req, res) => {
@@ -45,6 +54,38 @@ app.use((req, res) => {
     });
 });
 
+// Database connection helper
+const connectDB = async () => {
+    // Check if already connected
+    if (mongoose.connection.readyState === 1) {
+        return; // Already connected
+    }
+
+    try {
+        await mongoose.connect(process.env.MONGODB_URI, {
+            serverSelectionTimeoutMS: 5000,
+            socketTimeoutMS: 45000,
+        });
+        console.log('✅ MongoDB connected successfully');
+    } catch (err) {
+        console.error('❌ MongoDB connection error:', err);
+        throw err;
+    }
+};
+
+// Handle connection events
+mongoose.connection.on('disconnected', () => {
+    console.log('⚠️ MongoDB disconnected');
+});
+
+mongoose.connection.on('error', (err) => {
+    console.error('❌ MongoDB error:', err);
+});
+
+mongoose.connection.on('reconnected', () => {
+    console.log('✅ MongoDB reconnected');
+});
+
 // Error handler
 app.use((err, req, res, next) => {
     console.error(err.stack);
@@ -55,28 +96,35 @@ app.use((err, req, res, next) => {
     });
 });
 
-// Database connection
-mongoose.connect(process.env.MONGODB_URI)
-    .then(() => {
-        console.log('✅ MongoDB connected successfully');
-
-        // Start server
-        const PORT = process.env.PORT || 5000;
-        app.listen(PORT, () => {
-            console.log(`✅ Server running on port ${PORT}`);
-            console.log(`📡 API available at http://localhost:${PORT}/api`);
-            console.log(`🔧 Environment: ${process.env.NODE_ENV}`);
+// For local development
+if (process.env.NODE_ENV !== 'production' && !process.env.FIREBASE_CONFIG) {
+    connectDB()
+        .then(() => {
+            const PORT = process.env.PORT || 5000;
+            app.listen(PORT, () => {
+                console.log(`✅ Server running on port ${PORT}`);
+            });
+        })
+        .catch((err) => {
+            console.error('❌ Failed to start server:', err);
+            process.exit(1);
         });
-    })
-    .catch((err) => {
-        console.error('❌ MongoDB connection error:', err);
-        process.exit(1);
-    });
+}
+
+// Export the Cloud Function
+exports.api = onRequest({
+    memory: '256MiB',
+    region: 'us-central1', // Change if needed
+    cors: true,
+}, async (req, res) => {
+    await connectDB();
+    return app(req, res);
+});
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err) => {
     console.error('❌ Unhandled Promise Rejection:', err);
-    process.exit(1);
 });
 
-module.exports = app;
+// module.exports = app; // Removed to avoid overwriting exports.api
+// Force restart to load env

@@ -82,7 +82,8 @@ const uploadToCloudinary = async (file, folder = 'ecommerce') => {
             public_id: result.public_id
         };
     } catch (error) {
-        throw new Error('Error uploading to Cloudinary: ' + error.message);
+        console.error('Cloudinary Upload Error Details:', error);
+        throw new Error('Error uploading to Cloudinary: ' + (error.message || JSON.stringify(error)));
     }
 };
 

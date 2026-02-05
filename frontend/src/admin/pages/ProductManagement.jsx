@@ -1,7 +1,25 @@
 import React, { useEffect, useState } from 'react';
 import { adminProducts } from '../../utils/api';
 import { toast } from 'react-toastify';
-import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, PencilIcon, TrashIcon, XMarkIcon } from '@heroicons/react/24/outline';
+
+// Helper function to get image URL
+const getImageUrl = (imageUrl) => {
+    if (!imageUrl) return null;
+    
+    // If it's already a full URL (Cloudinary or external), return as is
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+        return imageUrl;
+    }
+    
+    // If it's a relative path starting with /, return as is (proxy will handle it)
+    if (imageUrl.startsWith('/')) {
+        return imageUrl;
+    }
+    
+    // Otherwise, prepend /uploads
+    return `/uploads/${imageUrl}`;
+};
 
 const ProductManagement = () => {
     const [products, setProducts] = useState([]);
@@ -15,18 +33,38 @@ const ProductManagement = () => {
         discountPercent: '',
         category: '',
         brand: '',
-        quantity: '',
     });
+    const [sizes, setSizes] = useState([]);
+    const [colors, setColors] = useState([]);
     const [images, setImages] = useState([]);
 
+    // Pagination & Filter state
+    const [page, setPage] = useState(1);
+    const [limit] = useState(20);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalProducts, setTotalProducts] = useState(0);
+    const [search, setSearch] = useState('');
+    const [filterCategory, setFilterCategory] = useState('');
+
     useEffect(() => {
-        loadProducts();
-    }, []);
+        const timeoutId = setTimeout(() => {
+            loadProducts();
+        }, 500); // Debounce search
+        return () => clearTimeout(timeoutId);
+    }, [page, search, filterCategory]); // Reload when these change
 
     const loadProducts = async () => {
         try {
-            const response = await adminProducts.getAll();
+            setLoading(true);
+            const response = await adminProducts.getAll({
+                page,
+                limit,
+                search,
+                category: filterCategory
+            });
             setProducts(response.data.products);
+            setTotalPages(response.data.pagination.pages);
+            setTotalProducts(response.data.pagination.total);
         } catch (error) {
             toast.error('Failed to load products');
         } finally {
@@ -34,17 +72,38 @@ const ProductManagement = () => {
         }
     };
 
+    const handlePageChange = (newPage) => {
+        if (newPage >= 1 && newPage <= totalPages) {
+            setPage(newPage);
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        // Calculate total quantity from sizes and colors
+        const totalSizeQuantity = sizes.reduce((sum, size) => sum + (parseInt(size.quantity) || 0), 0);
+        const totalColorQuantity = colors.reduce((sum, color) => sum + (parseInt(color.quantity) || 0), 0);
+        const totalQuantity = Math.max(totalSizeQuantity, totalColorQuantity);
+
         const data = new FormData();
         Object.keys(formData).forEach(key => {
-            if (formData[key]) data.append(key, formData[key]);
+            if (formData[key] !== '' && formData[key] !== null && formData[key] !== undefined) {
+                data.append(key, formData[key]);
+            }
         });
 
-        Array.from(images).forEach(file => {
-            data.append('images', file);
-        });
+        // Append sizes and colors as JSON
+        data.append('sizes', JSON.stringify(sizes));
+        data.append('colors', JSON.stringify(colors));
+        data.append('quantity', totalQuantity);
+
+        // Append images if any are selected
+        if (images && images.length > 0) {
+            Array.from(images).forEach(file => {
+                data.append('images', file);
+            });
+        }
 
         try {
             if (editingProduct) {
@@ -84,8 +143,19 @@ const ProductManagement = () => {
             discountPercent: product.discountPercent || '',
             category: product.category,
             brand: product.brand || '',
-            quantity: product.quantity,
         });
+        // Load sizes and colors
+        setSizes(product.sizes && product.sizes.length > 0 ? product.sizes : []);
+        // Handle both old format (array of strings) and new format (array of objects)
+        if (product.colors && product.colors.length > 0) {
+            const colorsData = product.colors.map(color => 
+                typeof color === 'string' ? { name: color, quantity: 0 } : color
+            );
+            setColors(colorsData);
+        } else {
+            setColors([]);
+        }
+        setImages([]); // Reset images when editing
         setShowModal(true);
     };
 
@@ -97,10 +167,39 @@ const ProductManagement = () => {
             discountPercent: '',
             category: '',
             brand: '',
-            quantity: '',
         });
+        setSizes([]);
+        setColors([]);
         setImages([]);
         setEditingProduct(null);
+    };
+
+    const addSize = () => {
+        setSizes([...sizes, { name: '', quantity: 0 }]);
+    };
+
+    const removeSize = (index) => {
+        setSizes(sizes.filter((_, i) => i !== index));
+    };
+
+    const updateSize = (index, field, value) => {
+        const updatedSizes = [...sizes];
+        updatedSizes[index] = { ...updatedSizes[index], [field]: value };
+        setSizes(updatedSizes);
+    };
+
+    const addColor = () => {
+        setColors([...colors, { name: '', quantity: 0 }]);
+    };
+
+    const removeColor = (index) => {
+        setColors(colors.filter((_, i) => i !== index));
+    };
+
+    const updateColor = (index, field, value) => {
+        const updatedColors = [...colors];
+        updatedColors[index] = { ...updatedColors[index], [field]: value };
+        setColors(updatedColors);
     };
 
     if (loading) {
@@ -122,6 +221,32 @@ const ProductManagement = () => {
                 </button>
             </div>
 
+            {/* Filters */}
+            <div className="bg-white p-4 rounded-xl shadow-sm mb-6 flex gap-4 flex-wrap">
+                <div className="flex-1 min-w-[200px]">
+                    <input
+                        type="text"
+                        placeholder="Search products..."
+                        value={search}
+                        onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                    />
+                </div>
+                <div className="w-[200px]">
+                    <select
+                        value={filterCategory}
+                        onChange={(e) => { setFilterCategory(e.target.value); setPage(1); }}
+                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                    >
+                        <option value="">All Categories</option>
+                        <option value="Women">Women</option>
+                        <option value="Men">Men</option>
+                        <option value="Kids">Kids</option>
+                        <option value="Beauty">Beauty</option>
+                    </select>
+                </div>
+            </div>
+
             <div className="bg-white rounded-xl shadow-lg overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="min-w-full">
@@ -139,8 +264,19 @@ const ProductManagement = () => {
                             {products.map((product) => (
                                 <tr key={product._id} className="hover:bg-gray-50">
                                     <td className="py-3 px-4">
-                                        {product.images?.[0] && (
-                                            <img src={product.images[0].url} alt={product.name} className="h-12 w-12 object-cover rounded" />
+                                        {product.images?.[0]?.url ? (
+                                            <img 
+                                                src={getImageUrl(product.images[0].url)} 
+                                                alt={product.name} 
+                                                className="h-12 w-12 object-cover rounded"
+                                                onError={(e) => {
+                                                    e.target.src = 'https://via.placeholder.com/48?text=No+Image';
+                                                }}
+                                            />
+                                        ) : (
+                                            <div className="h-12 w-12 bg-gray-200 rounded flex items-center justify-center text-xs text-gray-500">
+                                                No Image
+                                            </div>
                                         )}
                                     </td>
                                     <td className="py-3 px-4 font-medium">{product.name}</td>
@@ -167,6 +303,50 @@ const ProductManagement = () => {
                             ))}
                         </tbody>
                     </table>
+                </div>
+                {/* Pagination Controls */}
+                <div className="px-4 py-3 border-t bg-gray-50 flex items-center justify-between sm:px-6">
+                    <div className="flex-1 flex justify-between sm:hidden">
+                        <button
+                            onClick={() => handlePageChange(page - 1)}
+                            disabled={page === 1}
+                            className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 ${page === 1 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                            Previous
+                        </button>
+                        <button
+                            onClick={() => handlePageChange(page + 1)}
+                            disabled={page === totalPages}
+                            className={`ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 ${page === totalPages ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                            Next
+                        </button>
+                    </div>
+                    <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                        <div>
+                            <p className="text-sm text-gray-700">
+                                Showing page <span className="font-medium">{page}</span> of <span className="font-medium">{totalPages}</span> ({totalProducts} results)
+                            </p>
+                        </div>
+                        <div>
+                            <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                                <button
+                                    onClick={() => handlePageChange(page - 1)}
+                                    disabled={page === 1}
+                                    className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 ${page === 1 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                >
+                                    Previous
+                                </button>
+                                <button
+                                    onClick={() => handlePageChange(page + 1)}
+                                    disabled={page === totalPages}
+                                    className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 ${page === totalPages ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                >
+                                    Next
+                                </button>
+                            </nav>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -227,13 +407,18 @@ const ProductManagement = () => {
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium mb-1">Category</label>
-                                        <input
-                                            type="text"
+                                        <select
                                             required
                                             value={formData.category}
                                             onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                                             className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
-                                        />
+                                        >
+                                            <option value="">Select Category</option>
+                                            <option value="Women">Women</option>
+                                            <option value="Men">Men</option>
+                                            <option value="Kids">Kids</option>
+                                            <option value="Beauty">Beauty</option>
+                                        </select>
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium mb-1">Brand</label>
@@ -246,15 +431,96 @@ const ProductManagement = () => {
                                     </div>
                                 </div>
 
+                                {/* Sizes with Quantities */}
                                 <div>
-                                    <label className="block text-sm font-medium mb-1">Quantity</label>
-                                    <input
-                                        type="number"
-                                        required
-                                        value={formData.quantity}
-                                        onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
-                                    />
+                                    <div className="flex justify-between items-center mb-2">
+                                        <label className="block text-sm font-medium">Sizes & Quantities</label>
+                                        <button
+                                            type="button"
+                                            onClick={addSize}
+                                            className="text-sm text-purple-600 hover:text-purple-700 flex items-center gap-1"
+                                        >
+                                            <PlusIcon className="h-4 w-4" />
+                                            Add Size
+                                        </button>
+                                    </div>
+                                    <div className="space-y-2">
+                                        {sizes.map((size, index) => (
+                                            <div key={index} className="flex gap-2">
+                                                <input
+                                                    type="text"
+                                                    placeholder="Size (e.g., S, M, L)"
+                                                    value={size.name}
+                                                    onChange={(e) => updateSize(index, 'name', e.target.value)}
+                                                    className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                                                />
+                                                <input
+                                                    type="number"
+                                                    placeholder="Quantity"
+                                                    min="0"
+                                                    value={size.quantity}
+                                                    onChange={(e) => updateSize(index, 'quantity', parseInt(e.target.value) || 0)}
+                                                    className="w-32 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeSize(index)}
+                                                    className="text-red-600 hover:text-red-700 p-2"
+                                                >
+                                                    <XMarkIcon className="h-5 w-5" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                        {sizes.length === 0 && (
+                                            <p className="text-sm text-gray-500">No sizes added. Click "Add Size" to add sizes with quantities.</p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Colors with Quantities */}
+                                <div>
+                                    <div className="flex justify-between items-center mb-2">
+                                        <label className="block text-sm font-medium">Colors & Quantities</label>
+                                        <button
+                                            type="button"
+                                            onClick={addColor}
+                                            className="text-sm text-purple-600 hover:text-purple-700 flex items-center gap-1"
+                                        >
+                                            <PlusIcon className="h-4 w-4" />
+                                            Add Color
+                                        </button>
+                                    </div>
+                                    <div className="space-y-2">
+                                        {colors.map((color, index) => (
+                                            <div key={index} className="flex gap-2">
+                                                <input
+                                                    type="text"
+                                                    placeholder="Color (e.g., Red, Blue)"
+                                                    value={color.name}
+                                                    onChange={(e) => updateColor(index, 'name', e.target.value)}
+                                                    className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                                                />
+                                                <input
+                                                    type="number"
+                                                    placeholder="Quantity"
+                                                    min="0"
+                                                    value={color.quantity}
+                                                    onChange={(e) => updateColor(index, 'quantity', parseInt(e.target.value) || 0)}
+                                                    className="w-32 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeColor(index)}
+                                                    className="text-red-600 hover:text-red-700 p-2"
+                                                >
+                                                    <XMarkIcon className="h-5 w-5" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                        {colors.length === 0 && (
+                                            <p className="text-sm text-gray-500">No colors added. Click "Add Color" to add colors with quantities.</p>
+                                        )}
+                                    </div>
                                 </div>
 
                                 <div>

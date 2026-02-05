@@ -70,37 +70,48 @@ const Checkout = () => {
             return;
         }
 
+        const orderData = {
+            items: cartItems.map(item => ({
+                product: item.productId,
+                quantity: item.quantity,
+                size: item.size,
+                color: item.color,
+            })),
+            customer: {
+                name: shippingAddress.name,
+                email: customer.email,
+                phone: shippingAddress.phone,
+            },
+            shippingAddress: {
+                street: shippingAddress.street,
+                city: shippingAddress.city,
+                state: shippingAddress.state,
+                pinCode: shippingAddress.pinCode,
+            },
+            paymentType: paymentMethod,
+            totalAmount: getSubtotal(),
+            deliveryCharges: getDeliveryCharges(),
+            finalAmount: getTotal(),
+        };
+
+        if (paymentMethod === 'Card') {
+            navigate('/checkout/payment', { state: { orderData } });
+            return;
+        }
+
         setLoading(true);
 
         try {
-            const orderData = {
-                items: cartItems.map(item => ({
-                    product: item.productId,
-                    quantity: item.quantity,
-                    size: item.size,
-                    color: item.color,
-                })),
-                customer: {
-                    name: shippingAddress.name,
-                    email: customer.email,
-                    phone: shippingAddress.phone,
-                },
-                shippingAddress: {
-                    street: shippingAddress.street,
-                    city: shippingAddress.city,
-                    state: shippingAddress.state,
-                    pinCode: shippingAddress.pinCode,
-                },
-                paymentType: paymentMethod,
-                totalAmount: getSubtotal(),
-                deliveryCharges: getDeliveryCharges(),
-                finalAmount: getTotal(),
-            };
-
             const response = await orders.create(orderData);
 
             clearCart();
-            toast.success('Order placed successfully!');
+
+            if (paymentMethod === 'COD') {
+                toast.success('Order placed! Pay on delivery.');
+            } else {
+                toast.success('Order placed successfully!');
+            }
+
             navigate(`/order-confirmation/${response.data.order.orderNumber}`);
         } catch (error) {
             console.error('Order error:', error);
@@ -134,8 +145,8 @@ const Checkout = () => {
                                 <div className="flex flex-col items-center">
                                     <div
                                         className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold transition-all duration-300 ${currentStep >= step.number
-                                                ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg scale-110'
-                                                : 'bg-gray-200 text-gray-500'
+                                            ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg scale-110'
+                                            : 'bg-gray-200 text-gray-500'
                                             }`}
                                     >
                                         {currentStep > step.number ? (
@@ -289,8 +300,8 @@ const Checkout = () => {
                                             key={option.id}
                                             onClick={() => setPaymentMethod(option.id)}
                                             className={`p-6 border-2 rounded-xl cursor-pointer transition-all duration-200 ${paymentMethod === option.id
-                                                    ? 'border-purple-600 bg-purple-50 shadow-md scale-[1.02]'
-                                                    : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                                                ? 'border-purple-600 bg-purple-50 shadow-md scale-[1.02]'
+                                                : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
                                                 }`}
                                         >
                                             <div className="flex items-center justify-between">
@@ -303,8 +314,8 @@ const Checkout = () => {
                                                 </div>
                                                 <div>
                                                     <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${paymentMethod === option.id
-                                                            ? 'border-purple-600 bg-purple-600'
-                                                            : 'border-gray-300'
+                                                        ? 'border-purple-600 bg-purple-600'
+                                                        : 'border-gray-300'
                                                         }`}>
                                                         {paymentMethod === option.id && (
                                                             <div className="w-3 h-3 bg-white rounded-full"></div>

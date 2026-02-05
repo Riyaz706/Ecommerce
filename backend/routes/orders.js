@@ -3,17 +3,35 @@ const router = express.Router();
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 const Customer = require('../models/Customer');
-const { optionalProtect } = require('../middleware/customerAuth');
+const { protect, optionalProtect } = require('../middleware/customerAuth');
 
-// @route   POST /api/orders
-// @desc    Create new order
-// @access  Public (but links customer if logged in)
+// @route   GET /api/orders
+// @desc    Get all orders (Protected, for testing/admin/user flexibility)
+// @access  Private
+router.get('/', protect, async (req, res) => {
+    try {
+        // If needed, we can implement listing logic here later
+        // For now, this route exists to prevent 404s and enforce auth
+        res.status(400).json({
+            success: false,
+            message: 'Please use specific endpoints like /my-orders or /admin/orders'
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Server error',
+            error: error.message
+        });
+    }
+});
+
 // @route   POST /api/orders
 // @desc    Create new order
 // @access  Public (but links customer if logged in)
 router.post('/', optionalProtect, async (req, res) => {
     try {
-        const { items, customer, shippingAddress, paymentType } = req.body;
+        console.log('Received order creation request:', req.body);
+        const { items, customer, shippingAddress, paymentType, paymentResult } = req.body;
 
         // Validate required fields
         if (!items || items.length === 0) {
@@ -62,17 +80,26 @@ router.post('/', optionalProtect, async (req, res) => {
         const deliveryCharges = totalAmount >= 500 ? 0 : 50;
         const finalAmount = totalAmount + deliveryCharges;
 
+        // Determine Payment Status
+        let paymentStatus = 'Pending';
+        if (paymentType === 'COD') {
+            paymentStatus = 'Pending';
+        } else if (paymentResult && paymentResult.status === 'succeeded') {
+            paymentStatus = 'Paid';
+        }
+
         // Construct order data
         const orderData = {
             items: orderItems,
             customer,
             shippingAddress,
             paymentType,
+            paymentResult, // Add payment result
             totalAmount,
             deliveryCharges,
             finalAmount,
             orderStatus: 'Pending',
-            paymentStatus: paymentType === 'COD' ? 'Pending' : 'Pending',
+            paymentStatus, // Use calculated status
             statusHistory: [{
                 status: 'Pending',
                 note: 'Order placed'
@@ -83,6 +110,10 @@ router.post('/', optionalProtect, async (req, res) => {
         if (req.customer) {
             orderData.customerId = req.customer._id;
         }
+
+        // Generate Order Number explicitly
+        const count = await Order.countDocuments();
+        orderData.orderNumber = `ORD${Date.now()}${count + 1}`;
 
         // Create order
         const order = await Order.create(orderData);
@@ -140,7 +171,6 @@ router.get('/:orderNumber', async (req, res) => {
 // @route   GET /api/orders/customer/my-orders
 // @desc    Get logged in customer's orders
 // @access  Private
-const { protect } = require('../middleware/customerAuth');
 router.get('/customer/my-orders', protect, async (req, res) => {
     try {
         const orders = await Order.find({ customerId: req.customer._id })

@@ -42,7 +42,10 @@ const productSchema = new mongoose.Schema({
         name: String, // S, M, L, XL, etc.
         quantity: Number
     }],
-    colors: [String],
+    colors: [{
+        name: String, // Red, Blue, Green, etc.
+        quantity: Number
+    }],
     quantity: {
         type: Number,
         required: true,

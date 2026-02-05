@@ -19,7 +19,10 @@ const products = [
             { name: "M", quantity: 15 },
             { name: "L", quantity: 8 }
         ],
-        colors: ["Pink", "White"],
+        colors: [
+            { name: "Pink", quantity: 15 },
+            { name: "White", quantity: 18 }
+        ],
         quantity: 33,
         isActive: true
     },
@@ -37,7 +40,7 @@ const products = [
             { name: "M", quantity: 20 },
             { name: "L", quantity: 10 }
         ],
-        colors: ["Blue"],
+        colors: [{ name: "Blue", quantity: 30 }],
         quantity: 30,
         isActive: true
     },
@@ -55,7 +58,7 @@ const products = [
             { name: "S", quantity: 5 },
             { name: "M", quantity: 5 }
         ],
-        colors: ["Red"],
+        colors: [{ name: "Red", quantity: 10 }],
         quantity: 10,
         isActive: true
     },
@@ -76,7 +79,10 @@ const products = [
             { name: "L", quantity: 25 },
             { name: "XL", quantity: 15 }
         ],
-        colors: ["White", "Blue"],
+        colors: [
+            { name: "White", quantity: 30 },
+            { name: "Blue", quantity: 30 }
+        ],
         quantity: 60,
         isActive: true
     },
@@ -95,7 +101,10 @@ const products = [
             { name: "32", quantity: 15 },
             { name: "34", quantity: 10 }
         ],
-        colors: ["Beige", "Navy"],
+        colors: [
+            { name: "Beige", quantity: 20 },
+            { name: "Navy", quantity: 15 }
+        ],
         quantity: 35,
         isActive: true
     },
@@ -113,7 +122,7 @@ const products = [
             { name: "L", quantity: 5 },
             { name: "XL", quantity: 5 }
         ],
-        colors: ["Black"],
+        colors: [{ name: "Black", quantity: 10 }],
         quantity: 10,
         isActive: true
     },
@@ -130,7 +139,10 @@ const products = [
         brand: "Fossil",
         images: [{ url: "https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=800&q=80" }],
         sizes: [],
-        colors: ["Black", "Brown"],
+        colors: [
+            { name: "Black", quantity: 10 },
+            { name: "Brown", quantity: 10 }
+        ],
         quantity: 20,
         isActive: true
     },
@@ -145,7 +157,10 @@ const products = [
         brand: "Wildcraft",
         images: [{ url: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800&q=80" }],
         sizes: [],
-        colors: ["Grey", "Black"],
+        colors: [
+            { name: "Grey", quantity: 20 },
+            { name: "Black", quantity: 20 }
+        ],
         quantity: 40,
         isActive: true
     },
@@ -160,7 +175,10 @@ const products = [
         brand: "Ray-Ban",
         images: [{ url: "https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=800&q=80" }],
         sizes: [],
-        colors: ["Gold", "Silver"],
+        colors: [
+            { name: "Gold", quantity: 25 },
+            { name: "Silver", quantity: 25 }
+        ],
         quantity: 50,
         isActive: true
     }

@@ -7,21 +7,26 @@ const Product = require('../models/Product');
 // Map folder names to Display Categories
 const categoryMap = {
     'BABY_PRODUCTS': 'Baby',
-    'BEAUTY_HEALTH': 'Beauty', // Shortened for UI
-    'CLOTHING_ACCESSORIES_JEWELLERY': 'Fashion', // Broader term
+    'BEAUTY_HEALTH': 'Beauty',
     'ELECTRONICS': 'Electronics',
     'GROCERY': 'Grocery',
     'HOBBY_ARTS_STATIONERY': 'Hobbies',
-    'HOME_KITCHEN': 'Home', // Adjusted
-    'HOME_KITCHEN_TOOLS': 'Home', // Expected folder name
+    'HOME_KITCHEN_TOOLS': 'Home',
     'PET_SUPPLIES': 'Pets',
     'SPORTS_OUTDOOR': 'Sports'
 };
 
-// Brands per category for realism
+// Folders to split into multiple categories
+const splitCategories = {
+    'CLOTHING_ACCESSORIES_JEWELLERY': ['Women', 'Men', 'Accessories']
+};
+
+// Brands per category
 const brandMap = {
     'Electronics': ['Samsung', 'Apple', 'Sony', 'LG', 'Dell', 'HP'],
-    'Fashion': ['Zara', 'H&M', 'Nike', 'Adidas', 'Gucci', 'Prada'],
+    'Women': ['Zara', 'H&M', 'Vero Moda', 'Forever 21', 'Prada'],
+    'Men': ['Nike', 'Adidas', 'Puma', 'Levis', 'Tommy Hilfiger'],
+    'Accessories': ['Ray-Ban', 'Fossil', 'Titan', 'Fastrack', 'Baggit'],
     'Home': ['IKEA', 'Phillips', 'Prestige', 'Milton', 'Dyson'],
     'Beauty': ['L\'Oreal', 'Nivea', 'Maybelline', 'MAC', 'Dove'],
     'Grocery': ['Nestle', 'Britannia', 'Amul', 'Tata', 'Coca-Cola'],
@@ -51,27 +56,38 @@ const seedLocalImages = async () => {
         for (const folder of folders) {
             const folderPath = path.join(DATASET_ROOT, folder);
 
-            // Skip hidden files/files
             if (!fs.statSync(folderPath).isDirectory() || folder.startsWith('.')) continue;
 
-            const categoryName = categoryMap[folder] || folder; // Fallback to folder name
-            const categoryBrands = brandMap[categoryName] || ['Generic'];
+            // Determine possible categories for this folder
+            let possibleCategories = [];
+            if (categoryMap[folder]) {
+                possibleCategories = [categoryMap[folder]];
+            } else if (splitCategories[folder]) {
+                possibleCategories = splitCategories[folder];
+            } else {
+                possibleCategories = [folder]; // Fallback
+            }
 
             const images = fs.readdirSync(folderPath)
                 .filter(file => /\.(jpg|jpeg|png|webp)$/i.test(file));
 
-            console.log(`Processing ${categoryName} (${images.length} images)...`);
+            console.log(`Processing ${folder} -> [${possibleCategories.join(', ')}] (${images.length} images)...`);
 
             for (const image of images) {
+                // Randomly assign one of the possible categories
+                const categoryName = possibleCategories[Math.floor(Math.random() * possibleCategories.length)];
+
+                // Get brands for that specific category
+                const categoryBrands = brandMap[categoryName] || ['Generic'];
+                const brand = categoryBrands[Math.floor(Math.random() * categoryBrands.length)];
+
                 // Generate random price details
                 const price = Math.floor(Math.random() * (10000 - 100 + 1)) + 100;
                 const discountPercent = Math.floor(Math.random() * 50);
                 const discountedPrice = Math.floor(price - (price * discountPercent / 100));
 
-                // Pick boolean for active (mostly true)
+                // Pick boolean for active
                 const isActive = Math.random() > 0.1;
-
-                const brand = categoryBrands[Math.floor(Math.random() * categoryBrands.length)];
 
                 // Clean filename for product name
                 const rawName = image.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " ");

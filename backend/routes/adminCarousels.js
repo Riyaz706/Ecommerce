@@ -65,6 +65,7 @@ router.post('/', protect, upload.single('image'), async (req, res) => {
             carousel
         });
     } catch (error) {
+        console.error('Error in create carousel:', error);
         res.status(500).json({
             success: false,
             message: 'Server error',

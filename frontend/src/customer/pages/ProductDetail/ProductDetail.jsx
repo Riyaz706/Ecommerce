@@ -31,7 +31,9 @@ const ProductDetail = () => {
                 setSelectedSize(response.data.product.sizes[0].name);
             }
             if (response.data.product.colors?.length > 0) {
-                setSelectedColor(response.data.product.colors[0]);
+                // Handle both old format (string) and new format (object with name)
+                const firstColor = response.data.product.colors[0];
+                setSelectedColor(typeof firstColor === 'string' ? firstColor : firstColor.name);
             }
         } catch (error) {
             console.error('Error loading product:', error);
@@ -91,7 +93,7 @@ const ProductDetail = () => {
                                 <img
                                     src={product.images?.[selectedImage]?.url || 'https://via.placeholder.com/600'}
                                     alt={product.name}
-                                    className="w-full h-96 object-cover rounded-lg"
+                                    className="w-full aspect-[4/5] lg:h-[30rem] object-cover rounded-lg"
                                     onError={(e) => e.target.src = 'https://via.placeholder.com/600'}
                                 />
                             </div>
@@ -189,19 +191,24 @@ const ProductDetail = () => {
                             {product.colors?.length > 0 && (
                                 <div className="mb-6">
                                     <h3 className="font-semibold mb-2">Select Color</h3>
-                                    <div className="flex gap-2">
-                                        {product.colors.map((color) => (
-                                            <button
-                                                key={color}
-                                                onClick={() => setSelectedColor(color)}
-                                                className={`px-4 py-2 border rounded-lg ${selectedColor === color
-                                                    ? 'border-purple-600 bg-purple-50 text-purple-600'
-                                                    : 'border-gray-300 hover:border-gray-400'
-                                                    }`}
-                                            >
-                                                {color}
-                                            </button>
-                                        ))}
+                                    <div className="flex gap-2 flex-wrap">
+                                        {product.colors.map((color, index) => {
+                                            // Handle both old format (string) and new format (object with name)
+                                            const colorName = typeof color === 'string' ? color : color.name;
+                                            const colorKey = typeof color === 'string' ? color : color.name || index;
+                                            return (
+                                                <button
+                                                    key={colorKey}
+                                                    onClick={() => setSelectedColor(colorName)}
+                                                    className={`px-4 py-2 border rounded-lg ${selectedColor === colorName
+                                                        ? 'border-purple-600 bg-purple-50 text-purple-600'
+                                                        : 'border-gray-300 hover:border-gray-400'
+                                                        }`}
+                                                >
+                                                    {colorName}
+                                                </button>
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             )}

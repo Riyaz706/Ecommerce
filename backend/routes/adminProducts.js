@@ -13,12 +13,26 @@ router.get('/', protect, async (req, res) => {
         const limit = parseInt(req.query.limit) || 20;
         const skip = (page - 1) * limit;
 
-        const products = await Product.find()
+        // Build filter object
+        const query = {};
+
+        if (req.query.search) {
+            query.$or = [
+                { name: { $regex: req.query.search, $options: 'i' } },
+                { brand: { $regex: req.query.search, $options: 'i' } }
+            ];
+        }
+
+        if (req.query.category) {
+            query.category = req.query.category;
+        }
+
+        const products = await Product.find(query)
             .sort({ createdAt: -1 })
             .limit(limit)
             .skip(skip);
 
-        const total = await Product.countDocuments();
+        const total = await Product.countDocuments(query);
 
         res.status(200).json({
             success: true,
@@ -77,13 +91,14 @@ router.post('/', protect, upload.array('images', 5), async (req, res) => {
             const imagePromises = req.files.map(async (file) => {
                 if (isCloudinaryConfigured()) {
                     // File is already uploaded to Cloudinary by multer-storage-cloudinary
+                    // file.path should contain the secure_url
+                    // Use file.secure_url if available, otherwise use file.path
                     return {
-                        url: file.path,
-                        public_id: file.filename
+                        url: file.secure_url || file.path || file.url,
+                        public_id: file.filename || file.public_id
                     };
                 } else {
-                    // For local storage, you would save the file and return the path
-                    // For now, we'll use a placeholder
+                    // For local storage
                     return {
                         url: `/uploads/${file.filename}`,
                         public_id: file.filename
@@ -100,6 +115,24 @@ router.post('/', protect, upload.array('images', 5), async (req, res) => {
         }
         if (typeof productData.colors === 'string') {
             productData.colors = JSON.parse(productData.colors);
+        }
+
+        // Calculate total quantity from sizes and colors if not provided
+        if (!productData.quantity || productData.quantity === 0) {
+            let totalSizeQty = 0;
+            let totalColorQty = 0;
+            
+            if (productData.sizes && Array.isArray(productData.sizes)) {
+                totalSizeQty = productData.sizes.reduce((sum, size) => sum + (parseInt(size.quantity) || 0), 0);
+            }
+            if (productData.colors && Array.isArray(productData.colors)) {
+                totalColorQty = productData.colors.reduce((sum, color) => {
+                    const qty = typeof color === 'object' ? (parseInt(color.quantity) || 0) : 0;
+                    return sum + qty;
+                }, 0);
+            }
+            
+            productData.quantity = Math.max(totalSizeQty, totalColorQty);
         }
 
         // Calculate discounted price if discount percent is provided
@@ -143,9 +176,10 @@ router.put('/:id', protect, upload.array('images', 5), async (req, res) => {
         if (req.files && req.files.length > 0) {
             const imagePromises = req.files.map(async (file) => {
                 if (isCloudinaryConfigured()) {
+                    // Use file.secure_url if available, otherwise use file.path
                     return {
-                        url: file.path,
-                        public_id: file.filename
+                        url: file.secure_url || file.path || file.url,
+                        public_id: file.filename || file.public_id
                     };
                 } else {
                     return {
@@ -167,6 +201,27 @@ router.put('/:id', protect, upload.array('images', 5), async (req, res) => {
         }
         if (typeof updateData.colors === 'string') {
             updateData.colors = JSON.parse(updateData.colors);
+        }
+
+        // Calculate total quantity from sizes and colors if sizes/colors are updated
+        if (updateData.sizes || updateData.colors) {
+            const sizesToUse = updateData.sizes || product.sizes || [];
+            const colorsToUse = updateData.colors || product.colors || [];
+            
+            let totalSizeQty = 0;
+            let totalColorQty = 0;
+            
+            if (Array.isArray(sizesToUse)) {
+                totalSizeQty = sizesToUse.reduce((sum, size) => sum + (parseInt(size.quantity) || 0), 0);
+            }
+            if (Array.isArray(colorsToUse)) {
+                totalColorQty = colorsToUse.reduce((sum, color) => {
+                    const qty = typeof color === 'object' ? (parseInt(color.quantity) || 0) : 0;
+                    return sum + qty;
+                }, 0);
+            }
+            
+            updateData.quantity = Math.max(totalSizeQty, totalColorQty);
         }
 
         // Recalculate discounted price if needed

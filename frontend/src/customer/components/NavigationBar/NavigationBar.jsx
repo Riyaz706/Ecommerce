@@ -12,15 +12,10 @@ const NavigationBar = () => {
     const cartCount = getCartCount();
 
     const categories = [
-        { name: 'Fashion', path: '/products/Fashion' },
-        { name: 'Electronics', path: '/products/Electronics' },
-        { name: 'Home', path: '/products/Home' },
+        { name: 'Women', path: '/products/Women' },
+        { name: 'Men', path: '/products/Men' },
+        { name: 'Kids', path: '/products/Kids' },
         { name: 'Beauty', path: '/products/Beauty' },
-        { name: 'Grocery', path: '/products/Grocery' },
-        { name: 'Sports', path: '/products/Sports' },
-        { name: 'Pets', path: '/products/Pets' },
-        { name: 'Baby', path: '/products/Baby' },
-        { name: 'Hobbies', path: '/products/Hobbies' },
     ];
 
     const handleLogout = () => {

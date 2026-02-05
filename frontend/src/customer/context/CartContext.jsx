@@ -49,11 +49,11 @@ export const CartProvider = ({ children }) => {
                 // Update quantity if item exists
                 const updated = [...prevItems];
                 updated[existingItemIndex].quantity += quantity;
-                toast.success('Cart updated!');
+                // toast.success('Cart updated!'); // Removed popup as requested
                 return updated;
             } else {
                 // Add new item
-                toast.success('Added to cart!');
+                // toast.success('Added to cart!'); // Removed popup as requested
                 return [
                     ...prevItems,
                     {

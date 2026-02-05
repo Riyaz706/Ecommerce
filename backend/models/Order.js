@@ -69,6 +69,12 @@ const orderSchema = new mongoose.Schema({
         enum: ['COD', 'UPI', 'Card', 'Net Banking', 'Wallet'],
         required: true
     },
+    paymentResult: {
+        id: String,
+        status: String,
+        update_time: String,
+        email_address: String,
+    },
     paymentStatus: {
         type: String,
         enum: ['Pending', 'Paid', 'Failed', 'Refunded'],

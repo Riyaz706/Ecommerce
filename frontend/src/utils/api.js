@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:5001/api';
+const API_BASE_URL = '/api';
 
 // Create axios instance
 const api = axios.create({
@@ -23,6 +23,11 @@ api.interceptors.request.use((config) => {
         config.headers.Authorization = `Bearer ${customerToken}`;
     }
 
+    // Don't set Content-Type for FormData - let browser set it with boundary
+    if (config.data instanceof FormData) {
+        delete config.headers['Content-Type'];
+    }
+
     return config;
 });
 
@@ -36,12 +41,8 @@ export const adminAuth = {
 export const adminProducts = {
     getAll: (params) => api.get('/admin/products', { params }),
     getOne: (id) => api.get(`/admin/products/${id}`),
-    create: (formData) => api.post('/admin/products', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-    }),
-    update: (id, formData) => api.put(`/admin/products/${id}`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-    }),
+    create: (formData) => api.post('/admin/products', formData),
+    update: (id, formData) => api.put(`/admin/products/${id}`, formData),
     delete: (id) => api.delete(`/admin/products/${id}`),
     deleteImage: (id, imageId) => api.delete(`/admin/products/${id}/images/${imageId}`),
 };
@@ -49,12 +50,8 @@ export const adminProducts = {
 // Admin Carousel APIs
 export const adminCarousels = {
     getAll: () => api.get('/admin/carousels'),
-    create: (formData) => api.post('/admin/carousels', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-    }),
-    update: (id, formData) => api.put(`/admin/carousels/${id}`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-    }),
+    create: (formData) => api.post('/admin/carousels', formData),
+    update: (id, formData) => api.put(`/admin/carousels/${id}`, formData),
     delete: (id) => api.delete(`/admin/carousels/${id}`),
     reorder: (carousels) => api.put('/admin/carousels/reorder', { carousels }),
 };
@@ -104,6 +101,11 @@ export const customerAuth = {
 // Customer Orders API
 export const customerOrders = {
     getMyOrders: () => api.get('/orders/customer/my-orders'),
+};
+
+// Payment API
+export const payment = {
+    createPaymentIntent: (data) => api.post('/payments/create-payment-intent', data),
 };
 
 export default api;

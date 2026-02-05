@@ -3,6 +3,24 @@ import { adminCarousels } from '../../utils/api';
 import { toast } from 'react-toastify';
 import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 
+// Helper function to get image URL
+const getImageUrl = (imageUrl) => {
+    if (!imageUrl) return null;
+    
+    // If it's already a full URL (Cloudinary or external), return as is
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+        return imageUrl;
+    }
+    
+    // If it's a relative path starting with /, return as is (proxy will handle it)
+    if (imageUrl.startsWith('/')) {
+        return imageUrl;
+    }
+    
+    // Otherwise, prepend /uploads
+    return `/uploads/${imageUrl}`;
+};
+
 const CarouselManagement = () => {
     const [carousels, setCarousels] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -95,9 +113,12 @@ const CarouselManagement = () => {
                     <div key={carousel._id} className="bg-white rounded-xl shadow-lg overflow-hidden">
                         <div className="relative">
                             <img
-                                src={carousel.image.url}
+                                src={getImageUrl(carousel.image.url)}
                                 alt={carousel.title}
                                 className="w-full h-48 object-cover"
+                                onError={(e) => {
+                                    e.target.src = 'https://via.placeholder.com/400x200?text=No+Image';
+                                }}
                             />
                             <button
                                 onClick={() => handleDelete(carousel._id)}
@@ -147,9 +168,8 @@ const CarouselManagement = () => {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium mb-1">Link (Optional)</label>
                                     <input
-                                        type="url"
+                                        type="text"
                                         value={formData.link}
                                         onChange={(e) => setFormData({ ...formData, link: e.target.value })}
                                         className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
