@@ -46,6 +46,9 @@ app.get('/api/health', (req, res) => {
     });
 });
 
+// Handle OPTIONS requests for CORS preflight
+app.options('*', cors());
+
 // 404 handler
 app.use((req, res) => {
     res.status(404).json({
